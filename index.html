@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmic Idle Miner PWA</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101a3a">
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at top,#0b1c3d,#000);color:#fff;overflow:hidden;}
+.top{position:fixed;top:0;width:100%;height:80px;background:#101a3a;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;z-index:10;font-size:16px;}
+.game{position:absolute;top:80px;bottom:0;width:100%;overflow-y:auto;padding:20px;}
+.tower{max-width:540px;margin:auto;}
+.floor{background:#1a244f;border-radius:18px;margin-bottom:18px;padding:12px;display:flex;justify-content:space-between;align-items:center;animation:breath 3s infinite;}
+@keyframes breath{50%{transform:scale(1.01)}}
+.workers{display:flex;gap:8px}
+.worker{width:46px;height:46px;background:#2e3d73;border-radius:50%;position:relative;}
+.worker::before{content:"🧑‍🚀";position:absolute;left:8px;top:6px;font-size:26px;}
+.worker::after{content:"⛏️";position:absolute;right:-6px;bottom:-4px;font-size:14px;animation:pick 0.6s infinite alternate;}
+@keyframes pick{to{transform:rotate(-30deg)}}
+.ore{width:36px;height:36px;border-radius:6px;animation:drop .5s;text-align:center;font-size:24px;}
+@keyframes drop{from{opacity:0;transform:translateY(-10px)}}
+button{background:#ffb703;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;}
+.ship{position:fixed;bottom:10px;left:10px;width:260px;height:150px;background:#cfd8ff;border-radius:36px;}
+.ship::before{content:"🚀";position:absolute;font-size:80px;left:14px;top:44px;}
+.captain{position:absolute;right:20px;top:26px;font-size:46px;}
+.btn{position:fixed;right:10px;padding:10px;border-radius:12px;cursor:pointer;}
+.tech{bottom:120px;background:#4dff88;color:black;}
+.sell{bottom:80px;background:#ffd24d;color:black;}
+.prestige{bottom:30px;background:#ff4d4d;}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div id="money">💰 0</div>
+  <div id="income">+0 / сек</div>
+  <div id="uni">🌌 Вселенная 1</div>
+</div>
+
+<div class="game">
+  <div class="tower" id="tower"></div>
+</div>
+
+<div class="ship"><div class="captain">🧑‍✈️</div></div>
+<div class="btn tech" onclick="showTech()">🧪 Технологии</div>
+<div class="btn sell" onclick="sellOre()">💰 Продать руду</div>
+<div class="btn prestige" onclick="prestige()">🌌 Новая вселенная</div>
+
+<script>
+let money=0,universe=1,tech=1,bonus=1,storm=0,techPoints=0,oreInventory={🔵:0,🔴:0,🟡:0,🟣:0};
+const ore={🔵:{price:5,chance:0.5},🔴:{price:12,chance:0.3},🟡:{price:30,chance:0.15},🟣:{price:120,chance:0.05}};
+let floors=[];
+
+function init(){
+ floors=[];
+ for(let i=0;i<10;i++){floors.push({lvl:1,workers:3});}
+ render();
+}
+
+function randOre(){
+ let r=Math.random(),s=0;
+ for(let k in ore){
+  s+=ore[k].chance*bonus;
+  if(r<s)return k;
+ }
+ return "🔵";
+}
+
+function render(){
+ const t=document.getElementById("tower");
+ t.innerHTML="";
+ floors.forEach((f,i)=>{
+  const o=randOre();
+  const inc=f.lvl*ore[o].price*tech*universe;
+  oreInventory[o]+=f.lvl;
+  const d=document.createElement("div");
+  d.className="floor";
+  d.innerHTML=<div class="workers">
+    <div class="worker"></div><div class="worker"></div><div class="worker"></div>
+    <div class="ore">${o}</div>
+  </div>
+  <div>Этаж ${i+1}<br>Уровень ${f.lvl}<br>+${inc}/сек<br>
+  <button onclick="up(${i})">⬆</button></div>;
+  t.appendChild(d);
+ });
+}
+
+function up(i){
+ const cost=floors[i].lvl*120*universe;
+ if(money>=cost){money-=cost; floors[i].lvl++;}
+}
+
+function tick(){
+ let inc=0;
+ floors.forEach(f=>inc+=f.lvl*10*tech*universe);
+ if(Math.random()<0.12){bonus=2.5;storm=3;} else if(storm>0){storm--;} else bonus=1;
+ money+=inc;
+ techPoints+=0.1;
+ if(Math.random()<0.05){money+=50;alert("👽 Инопланетяне помогли! +50💰");}
+ document.getElementById("money").textContent="💰 "+Math.floor(money);
+ document.getElementById("income").textContent="+"+Math.floor(inc)+"/сек"+(bonus>1?" ☄️ШТОРМ":"");
+}
+function upgradeTech(){
+ const c=tech*600;
+ if(money>=c){money-=c; tech++; alert("🛸 Технология "+tech);}
+}
+
+function showTech(){
+ alert("💡 Технологии: "+tech+" /50\nБаллы: "+Math.floor(techPoints));
+}
+
+function sellOre(){
+ let sum=0;
+ for(let k in oreInventory){
+  sum+=oreInventory[k]*ore[k].price;
+  oreInventory[k]=0;
+ }
+ money+=sum;
+ alert("💰 Вы продали всю руду на Землю за "+sum);
+}
+
+function prestige(){
+ universe++; tech=1; money=0; techPoints=0; oreInventory={🔵:0,🔴:0,🟡:0,🟣:0}; init();
+ alert("🌌 Добро пожаловать в новую вселенную "+universe);
+}
+
+init();
+setInterval(tick,1000);
+</script>
+
+</body>
+</html>
